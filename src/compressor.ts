@@ -1,12 +1,16 @@
 import type { Container } from ".";
 
-export const compressor = async (container: Container): Promise<string> => {
-    // encode container to base64
-    const stream = new Blob([JSON.stringify(container)], {
+const FORMAT = "deflate";
+
+export const compressor = async (c: Container): Promise<string> => {
+    const stream = new Blob([JSON.stringify(compressContainer(c))], {
         type: "application/json",
     }).stream();
-    const compressed = stream.pipeThrough(new CompressionStream("deflate"));
+
+    const compressed = stream.pipeThrough(new CompressionStream(FORMAT));
+
     const buffer = await new Response(compressed).arrayBuffer();
+
     const s = btoa(String.fromCharCode(...new Uint8Array(buffer)));
 
     return s;
@@ -18,25 +22,28 @@ export const decompressor = async (s: string): Promise<Container> => {
             .split("")
             .map((c) => c.charCodeAt(0)),
     );
+
     const stream = new Blob([buffer], {
         type: "application/json",
     }).stream();
-    const decompressed = stream.pipeThrough(new DecompressionStream("deflate"));
-    const resp = new Response(decompressed);
-    const blob = await resp.blob();
-    const container = JSON.parse(await blob.text()) as Container;
 
-    return container;
-};
-type ArrayedContainer = ["0", string];
+    const decompressed = stream.pipeThrough(new DecompressionStream(FORMAT));
 
-const containerToArray = (container: Container): ArrayedContainer => {
-    return [container.v, JSON.stringify(container.expr)];
+    const blob = await new Response(decompressed).blob();
+
+    const container = JSON.parse(await blob.text()) as CompressedContainer;
+
+    return decompressContainer(container);
 };
 
-const arrayToContainer = (arr: ArrayedContainer): Container => {
+type CompressedContainer = [string];
+
+const compressContainer = (container: Container): CompressedContainer => {
+    return [container.expr];
+};
+
+const decompressContainer = (compressed: CompressedContainer): Container => {
     return {
-        v: arr[0],
-        expr: JSON.parse(arr[1]),
+        expr: compressed[0],
     };
 };
