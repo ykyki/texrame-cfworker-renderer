@@ -28,11 +28,13 @@ export const renderer = async (
         `,
     );
 
-    const expr = String.raw`
+    const expr =
+        String.raw`
         \left( \int_0^\infty \frac{\sin x}{\sqrt{x}} dx \right)^2 =
         \sum_{k=0}^\infty \frac{(2k)!}{2^{2k}(k!)^2} \frac{1}{2k+1} =
         \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1} = \frac{\pi}{2}
-    `;
+        \text{オイラー}
+    ` + new Date().getTime();
 
     const svg = (await page.evaluate(
         `
