@@ -5,3 +5,7 @@ compatibility_date = "2024-04-05"
 compatibility_flags = ["nodejs_compat"]
 
 browser = { binding = "MY_BROWSER" }
+
+kv_namespaces = [
+    { binding = "KV1", id = "ad4047b012044410af6ac33ceb0fd4fa", preview_id = "61ceab055f0f46a9828448d8d7ceb1b1" },
+]
