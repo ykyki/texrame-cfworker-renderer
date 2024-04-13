@@ -3,6 +3,7 @@ import puppeteer from "@cloudflare/puppeteer";
 import type { Env } from ".";
 
 export const renderer = async (
+    expr: string,
     env: Env,
     ctx: ExecutionContext,
 ): Promise<Buffer> => {
@@ -27,14 +28,6 @@ export const renderer = async (
             </html>
         `,
     );
-
-    const expr =
-        String.raw`
-        \left( \int_0^\infty \frac{\sin x}{\sqrt{x}} dx \right)^2 =
-        \sum_{k=0}^\infty \frac{(2k)!}{2^{2k}(k!)^2} \frac{1}{2k+1} =
-        \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1} = \frac{\pi}{2}
-        \text{日本語のテキスト😀}
-    ` + new Date().getTime();
 
     const svg = (await page.evaluate(async (expr) => {
         // @ts-ignore

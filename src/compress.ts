@@ -1,6 +1,11 @@
+import { createHash } from "node:crypto";
 import type { Container } from ".";
 
 const FORMAT = "deflate";
+
+export const simpleHash = (s: string): Buffer => {
+    return createHash("md5").update(s).digest();
+};
 
 export const compressor = async (c: Container): Promise<string> => {
     const stream = new Blob([JSON.stringify(compressContainer(c))], {
