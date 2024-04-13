@@ -1,5 +1,5 @@
-import { compressor, decompressor } from "./compressor";
-import { renderer } from "./renderer";
+import { compressor, decompressor } from "./compress";
+import { renderer } from "./render";
 
 export type Env = {
     MY_BROWSER: Fetcher;
