@@ -1,11 +1,20 @@
-import { createHash } from "node:crypto";
+import { Buffer } from "node:buffer";
 import type { Container } from ".";
 
-const FORMAT = "deflate";
-
 export const simpleHash = (s: string): Buffer => {
-    return createHash("md5").update(s).digest();
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) {
+        hash = (hash << 5) - hash + s.charCodeAt(i);
+        hash |= 0; // Convert to 32bit integer
+    }
+
+    const buffer = Buffer.alloc(4);
+    buffer.writeInt32LE(hash, 0);
+
+    return buffer;
 };
+
+const FORMAT = "deflate";
 
 export const compressor = async (c: Container): Promise<string> => {
     const stream = new Blob([JSON.stringify(compressContainer(c))], {
@@ -14,9 +23,9 @@ export const compressor = async (c: Container): Promise<string> => {
 
     const compressed = stream.pipeThrough(new CompressionStream(FORMAT));
 
-    const buffer = await new Response(compressed).arrayBuffer();
+    const buf = await new Response(compressed).arrayBuffer();
 
-    const s = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const s = btoa(String.fromCharCode(...new Uint8Array(buf)));
 
     return s;
 };
@@ -36,7 +45,7 @@ export const decompressor = async (s: string): Promise<Container> => {
 
     const blob = await new Response(decompressed).blob();
 
-    const container = JSON.parse(await blob.text()) as CompressedContainer;
+    const container = JSON.parse(await blob.text()) as CompressedContainer; // TODO validate
 
     return decompressContainer(container);
 };

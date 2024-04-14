@@ -58,9 +58,6 @@ const fetch = async (
                     \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1} = \frac{\pi}{2}
                     \text{日本語のテキスト😀}
                 ` + new Date().getTime();
-                // expr = "aaa".repeat(1000) + expr + "bbb".repeat(1000);
-                // expr = "1";
-                // expr = new Date().getTime().toString();
                 expr = expr.trim();
 
                 return {
@@ -68,10 +65,8 @@ const fetch = async (
                 } satisfies Container;
             })();
 
-            const key = simpleHash(JSON.stringify(container)).toString(
-                // "base64",
-                "hex",
-            );
+            // const key = simpleHash(JSON.stringify(container)).toString("hex");
+            const key = simpleHash(container.expr).toString("hex");
 
             const value = await retrieveFromKV(key, env);
 
@@ -90,6 +85,8 @@ const fetch = async (
                 expr: container.expr,
                 img,
             } satisfies Value;
+
+            console.log("putting", { key });
             await env.KV1.put(key, JSON.stringify(newValue), {
                 // expirationTtl: 60 * 60 * 24,
                 expirationTtl: 60,
