@@ -1,9 +1,10 @@
-import { simpleHash } from "./compress";
+import { compressor, decompressor, simpleHash } from "./compress";
 import { renderer } from "./render";
 
 export type Env = {
     MY_BROWSER: Fetcher;
     KV1: KVNamespace;
+    URL_ORIGIN: string | undefined;
 };
 
 export type Container = {
@@ -40,37 +41,36 @@ const fetch = async (
 
             const { searchParams } = url;
 
-            const keyParam = searchParams.get("key");
-            if (keyParam !== null) {
-                const value = await retrieveFromKV(keyParam, env);
-
-                if (value === null) {
-                    return new Response("Not found", { status: 404 });
+            const container: Container = await (async () => {
+                const containerParam = searchParams.get("c");
+                if (containerParam !== null) {
+                    const dc = await decompressor(
+                        decodeURIComponent(containerParam),
+                    );
+                    return dc;
                 }
 
-                return new Response(value.img, {
-                    status: 200,
-                    headers: {
-                        "Content-Type": "image/svg+xml",
-                    },
-                });
-            }
-
-            const exprParam = searchParams.get("expr");
-            let expr =
-                exprParam ??
-                String.raw` \left( \int_0^\infty \frac{\sin x}{\sqrt{x}} dx \right)^2 = \sum_{k=0}^\infty \frac{(2k)!}{2^{2k}(k!)^2} \frac{1}{2k+1} =
+                const exprParam = searchParams.get("expr");
+                let expr =
+                    exprParam ??
+                    String.raw`
+                    \left( \int_0^\infty \frac{\sin x}{\sqrt{x}} dx \right)^2 = \sum_{k=0}^\infty \frac{(2k)!}{2^{2k}(k!)^2} \frac{1}{2k+1} =
                     \prod_{k=1}^\infty \frac{4k^2}{4k^2 - 1} = \frac{\pi}{2}
                     \text{日本語のテキスト😀}
                 ` + new Date().getTime();
-            expr = expr.trim();
+                // expr = "aaa".repeat(1000) + expr + "bbb".repeat(1000);
+                // expr = "1";
+                // expr = new Date().getTime().toString();
+                expr = expr.trim();
 
-            const container = {
-                expr,
-            } satisfies Container;
+                return {
+                    expr,
+                } satisfies Container;
+            })();
 
             const key = simpleHash(JSON.stringify(container)).toString(
-                "base64",
+                // "base64",
+                "hex",
             );
 
             const value = await retrieveFromKV(key, env);
@@ -84,22 +84,23 @@ const fetch = async (
                 });
             }
 
-            const img = await renderer(expr, env, ctx);
+            const img = await renderer(container.expr, env, ctx);
 
             const newValue = {
                 expr: container.expr,
                 img,
             } satisfies Value;
             await env.KV1.put(key, JSON.stringify(newValue), {
-                expirationTtl: 60 * 60 * 24,
+                // expirationTtl: 60 * 60 * 24,
+                expirationTtl: 60,
             });
 
-            return new Response(img, {
-                status: 200,
-                headers: {
-                    "Content-Type": "image/svg+xml",
-                },
-            });
+            const cc = await compressor(container);
+            const redirectUrl = new URL(getCurrentUrlOrigin(url, env));
+            redirectUrl.pathname = "/v0";
+            redirectUrl.searchParams.set("c", encodeURIComponent(cc));
+
+            return Response.redirect(redirectUrl.toString(), 302);
         }
         default:
             return new Response("Not found", { status: 404 });
@@ -108,4 +109,11 @@ const fetch = async (
 
 export default {
     fetch,
+};
+
+const getCurrentUrlOrigin = (url: URL, env: Env): string => {
+    if (env.URL_ORIGIN !== undefined) {
+        return env.URL_ORIGIN;
+    }
+    return url.origin;
 };
