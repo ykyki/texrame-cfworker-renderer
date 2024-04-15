@@ -41,23 +41,54 @@ export const renderer = async (
     return svg;
 };
 
+const SETUP_BROWSER_RETRY_MAX_COUNT = 20;
+const SETUP_BROWSER_RETRY_MIN_INTERVAL = 300; // milliseconds
 const setupBrowser = async (env: Env): Promise<puppeteer.Browser> => {
+    for (let i = 0; i < SETUP_BROWSER_RETRY_MAX_COUNT; i++) {
+        try {
+            return await setupBrowserOnce(env);
+        } catch (e) {
+            console.error(e);
+        }
+
+        await new Promise((resolve) =>
+            setTimeout(
+                resolve,
+                SETUP_BROWSER_RETRY_MIN_INTERVAL +
+                    Math.random() * 3 * SETUP_BROWSER_RETRY_MIN_INTERVAL,
+            ),
+        );
+        console.log(`Retrying to setup browser... ${i}`); // TODO remove
+        // continue
+    }
+
+    throw new Error("Failed to setup the browser");
+};
+
+const setupBrowserOnce = async (env: Env): Promise<puppeteer.Browser> => {
     // @ts-ignore
     const sessionId = await retrieveSession(env.MY_BROWSER);
 
-    if (sessionId !== null) {
-        try {
-            // @ts-ignore
-            const browser = await puppeteer.connect(env.MY_BROWSER, sessionId);
-            return browser;
-        } catch (e) {
-            throw new Error("Failed to connect to the browser");
-        }
+    if (sessionId === undefined) {
+        // @ts-ignore
+        const browser = await puppeteer.launch(env.MY_BROWSER);
+        return browser;
     }
 
-    // @ts-ignore
-    const browser = await puppeteer.launch(env.MY_BROWSER);
-    return browser;
+    if (sessionId === null) {
+        throw new Error("Failed to retrieve a session");
+    }
+
+    try {
+        // @ts-ignore
+        const browser = await puppeteer.connect(env.MY_BROWSER, sessionId);
+        return browser;
+    } catch (e) {
+        console.error(e);
+        throw new Error(
+            `Failed to connect to the browser. (session = ${sessionId})`,
+        );
+    }
 };
 
 const teardownBrowser = async (browser: puppeteer.Browser): Promise<void> => {
@@ -66,11 +97,15 @@ const teardownBrowser = async (browser: puppeteer.Browser): Promise<void> => {
 
 const retrieveSession = async (
     endpoint: puppeteer.BrowserWorker,
-): Promise<string | null> => {
+): Promise<string | null | undefined> => {
     const sessions: puppeteer.ActiveSession[] =
         await puppeteer.sessions(endpoint);
 
-    const sessionsIds = sessions
+    if (sessions.length === 0) {
+        return undefined;
+    }
+
+    const sessionIds = sessions
         .filter((v) => {
             return v.connectionId === undefined; // remove sessions with workers connected to them
         })
@@ -78,13 +113,12 @@ const retrieveSession = async (
             return v.sessionId;
         });
 
-    if (sessionsIds.length === 0) {
+    if (sessionIds.length === 0) {
         return null;
     }
 
     // pick a random session
-    const sessionId =
-        sessionsIds[Math.floor(Math.random() * sessionsIds.length)];
+    const sessionId = sessionIds[Math.floor(Math.random() * sessionIds.length)];
 
     return sessionId;
 };

@@ -80,7 +80,13 @@ const fetch = async (
                 });
             }
 
-            const img = await renderer(container.expr, env, ctx);
+            let img: Buffer;
+            try {
+                img = await renderer(container.expr, env, ctx);
+            } catch (e) {
+                console.error(e);
+                return new Response("Internal Server Error", { status: 500 });
+            }
 
             const newValue = {
                 expr: container.expr,
