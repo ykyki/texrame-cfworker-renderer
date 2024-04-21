@@ -2,6 +2,8 @@ import type { Buffer } from "node:buffer";
 import puppeteer from "@cloudflare/puppeteer";
 import type { Env } from ".";
 
+import TEX_SVG_SOURCE from "../vendor/tex-svg.txt";
+
 export const renderer = async (
     expr: string,
     env: Env,
@@ -23,7 +25,7 @@ export const renderer = async (
                         }
                     };
                 </script>
-                <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+                <script>${TEX_SVG_SOURCE}</script>
             </head>
             </html>
         `,
