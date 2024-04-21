@@ -2,10 +2,11 @@
 // by running `wrangler types`
 
 interface Env {
-	KV1: KVNamespace;
-	MY_BROWSER: Fetcher;
+    KV1: KVNamespace;
+    MY_BROWSER: Fetcher;
+    URL_ORIGIN: string | undefined;
 }
 declare module "*.txt" {
-	const value: string;
-	export default value;
+    const value: string;
+    export default value;
 }

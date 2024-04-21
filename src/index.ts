@@ -1,12 +1,6 @@
 import { compressor, decompressor, simpleHash } from "./compress";
 import { renderer } from "./render";
 
-export type Env = {
-    MY_BROWSER: Fetcher;
-    KV1: KVNamespace;
-    URL_ORIGIN: string | undefined;
-};
-
 export type Container = {
     expr: string;
 };

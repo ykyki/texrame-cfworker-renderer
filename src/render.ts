@@ -1,6 +1,5 @@
 import type { Buffer } from "node:buffer";
 import puppeteer from "@cloudflare/puppeteer";
-import type { Env } from ".";
 
 import TEX_SVG_SOURCE from "../vendor/tex-svg.txt";
 
